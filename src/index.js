@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ContextApiProvider } from './context/ContextApi';
 import { ThemeContextProvider } from './context/ThemeContext';
+import { BrowserRouter } from 'react-router-dom';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -10,7 +11,9 @@ root.render(
   <React.StrictMode>
     <ThemeContextProvider>
      <ContextApiProvider>
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
      </ContextApiProvider>
     </ThemeContextProvider>
   </React.StrictMode>

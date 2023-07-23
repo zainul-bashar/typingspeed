@@ -2,9 +2,11 @@ import React, { createRef, useEffect, useMemo, useRef, useState } from "react";
 import { generate } from "random-words";
 import CountDown from "./CountDown";
 import { useContextApi } from "../context/ContextApi";
+import Stats from "./Stats";
 
 const TextBox = () => {
   const [words, setWords] = useState([]);
+  const [disabled,setDisabled]=useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -24,13 +26,28 @@ const TextBox = () => {
   const [testStarted, setTestStarted] = useState(false);
   const [testEnded, setTestEnded] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
-
+  const [correctChars, setCorrectChars] = useState(0);
+  const [incorreactChars, setIncorrectChars] = useState(0);
+  const [missedChars, setMissedChars] = useState(0);
+  const [extraChars, setExtraChars] = useState(0);
+  const [correctWords, setCorrectWords] = useState(0);
+  const [graphData, setGraphData] = useState([]);
   const [keyDownE, setKeyDownE] = useState(null);
 
   const countFnc = () => {
 
     const timer = () => {
       setCountDown((latestCountDown) => {
+        setCorrectChars((correctChars)=>{
+          setGraphData((graphData)=>{
+            return [...graphData,[
+              testTime - latestCountDown + 1,
+              (correctChars/5)/((testTime-latestCountDown+1)/60)
+            ]
+            ]
+          })
+          return correctChars;
+        })
         if (latestCountDown === 1) {
           setTestEnded(true)
           setTestStarted(false);
@@ -38,7 +55,6 @@ const TextBox = () => {
           setIntervalId(null)
           setCountDown(testTime)
           setCurrentChar(0);
-          setCurrentWord(0)
         }
         return latestCountDown - 1
       })
@@ -49,7 +65,6 @@ const TextBox = () => {
 
   const startFn = (e) => {
     const allCurrChar = wordsSpanRef[currentWord].current.childNodes;
-
 
     if (wordsSpanRef[currentWord + 1].current.childNodes[0]) {
       if (e.keyCode === 8) {
@@ -73,12 +88,19 @@ const TextBox = () => {
         return;
       }
       if (e.keyCode === 32) {
+
+        let correctCharsInWord = wordsSpanRef[currentWord].current.querySelectorAll('.correct');
+        if(correctCharsInWord.length === allCurrChar.length){
+          setCorrectWords(correctWords + 1)
+        }
+
         if (allCurrChar.length <= currentChar) {
           //remove cursor from last place of the word
           allCurrChar[currentChar - 1].classList.remove('current-right')
         }
         else {
           //remove cursor from middle place of the word
+          setMissedChars(missedChars + (allCurrChar.length - currentChar))
           allCurrChar[currentChar].classList.remove('current')
         }
         wordsSpanRef[currentWord + 1].current.childNodes[0].className = 'current';
@@ -88,6 +110,7 @@ const TextBox = () => {
       }
 
       if (allCurrChar.length === currentChar) {
+        setExtraChars(extraChars + 1);
         let newSpan = document.createElement('span')
         newSpan.innerText = e.key;
         newSpan.className = 'incorrect extra current-right'
@@ -99,10 +122,10 @@ const TextBox = () => {
 
       if (allCurrChar[currentChar]) {
         if (e.key === allCurrChar[currentChar].innerText) {
-
+             setCorrectChars(correctChars + 1)
           allCurrChar[currentChar].className = 'correct';
         } else {
-
+             setIncorrectChars(incorreactChars + 1)
           allCurrChar[currentChar].className = 'incorrect';
         }
 
@@ -140,7 +163,10 @@ const TextBox = () => {
   };
 
   useEffect(() => {
-    if(testStarted) startFn(keyDownE)
+    if(testStarted) {
+      startFn(keyDownE);
+    setCurrentWord(0);
+    }
   }, [testStarted])
 
   const handleInput = () => {
@@ -160,12 +186,24 @@ const TextBox = () => {
   }, [testTime])
 
   const resetWordSpanRef = () => {
-    wordsSpanRef.map((i) => 
-      Array.from(i.current.childNodes).map((j) =>
-        j.className = '')
-    )
+    wordsSpanRef.map((i) => {
+if(i?.current?.childNodes){
+  return  Array.from(i.current.childNodes).map((j) =>
+  j.className = '')
+}})
+  
+     
     // wordsSpanRef[0].current.childNodes[0].className = 'current'
 
+  }
+
+  const calculateWPM = () => {
+    return Math.round((correctChars/5)/(testTime/60));
+  }
+  const calculateAcc = () => {
+    
+    return Math.round((correctWords/currentWord)*100);
+   
   }
 
   const reset = () => {
@@ -183,7 +221,14 @@ const TextBox = () => {
   return (
     <div>
       <CountDown count={countdown} />
-      {testEnded ? <h1>Test Ended</h1> : (<div className="type-box" onClick={handleInput}>
+      {testEnded ? <Stats
+      wpm = {calculateWPM()}
+       accuracy = {calculateAcc()} 
+       correctChars = {correctChars} 
+       incorreactChars = {incorreactChars}
+       missedChars = {missedChars}
+       extraChars = {extraChars}
+       graphData = {graphData}/> : (<div className="type-box" onClick={handleInput}>
         <div className="words">
           {words.map((word, index) => (
             <span className="word" ref={wordsSpanRef[index]} key={index}>
@@ -199,6 +244,7 @@ const TextBox = () => {
         onKeyDown={takeData}
         className="hidden-input"
         ref={inputRef}
+        disabled={testEnded}
       />
     </div>
 
