@@ -197,4 +197,7 @@ body{
   padding: 1%;
   border-radius: 10px;
 }
+.total-test{
+    font-size: 1.3rem;
+}
 `
